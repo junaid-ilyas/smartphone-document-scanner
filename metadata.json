@@ -1,0 +1,6 @@
+{
+  "name": "DIY Scanner Twin & ESP32 Controller",
+  "description": "Interactive 3D kinematics simulation, parametric OpenSCAD/STL CAD studio, and ESP32 REST/WebSocket firmware test bench for DIY automated smartphone document scanners.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
