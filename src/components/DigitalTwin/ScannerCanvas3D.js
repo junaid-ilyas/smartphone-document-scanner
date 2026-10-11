@@ -80,7 +80,7 @@ const DIMENSION_ANCHORS = [
 ];
 export const ScannerCanvas3D = () => {
     const dispatch = useAppDispatch();
-    const { scannerState, metrics, hopperPaperCount, autoLoopEnabled, cycleDelayMs, explodedProgress, cameraViewPreset, showWireframe, showSensorBeams, theme, removeExitTray, useServoPickup, phoneCameraType, showPartLabels } = useAppSelector((state) => state.scanner);
+    const { scannerState, metrics, hopperPaperCount, explodedProgress, cameraViewPreset, showWireframe, showSensorBeams, theme, removeExitTray, useServoPickup, phoneCameraType, showPartLabels } = useAppSelector((state) => state.scanner);
     const containerRef = useRef(null);
     const canvasRef = useRef(null);
     const sceneRef = useRef(null);
@@ -1476,16 +1476,8 @@ export const ScannerCanvas3D = () => {
                             partsRef.current.servoPickUpGroup.rotation.z = 0.22;
                         }
                     }
-                    if (autoLoopEnabled && hopperPaperCount > 1) {
-                        timer = setTimeout(() => {
-                            dispatch(setScannerState('FEEDING'));
-                            dispatch(setPaperProgress(0));
-                        }, cycleDelayMs);
-                    }
-                    else {
-                        dispatch(setScannerState('IDLE'));
-                        dispatch(setPaperProgress(0));
-                    }
+                    dispatch(setScannerState('IDLE'));
+                    dispatch(setPaperProgress(0));
                 }
             }, 35);
             return () => {
@@ -1495,8 +1487,6 @@ export const ScannerCanvas3D = () => {
         }
     }, [
         scannerState,
-        autoLoopEnabled,
-        cycleDelayMs,
         hopperPaperCount,
         metrics.completedScans,
         dispatch,

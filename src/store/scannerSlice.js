@@ -25,8 +25,6 @@ const initialState = {
     scannerState: 'IDLE',
     metrics: initialMetrics,
     hopperPaperCount: 12,
-    autoLoopEnabled: false,
-    cycleDelayMs: 1200,
     isExplodedView: false,
     explodedProgress: 0,
     cameraViewPreset: 'perspective',
@@ -130,12 +128,6 @@ export const scannerSlice = createSlice({
             state.metrics.sensorHopperTripped = action.payload > 0;
             state.metrics.paperJamError = false;
         },
-        setAutoLoopEnabled: (state, action) => {
-            state.autoLoopEnabled = action.payload;
-        },
-        setCycleDelayMs: (state, action) => {
-            state.cycleDelayMs = action.payload;
-        },
         setExplodedView: (state, action) => {
             state.isExplodedView = action.payload;
             state.explodedProgress = action.payload ? 1 : 0;
@@ -200,5 +192,5 @@ export const scannerSlice = createSlice({
         }
     },
 });
-export const { setShowDimensionsModal, setShowPartLabels, setRemoveExitTray, setUseServoPickup, setPhoneCameraType, setShowTradeoffModal, setTheme, toggleTheme, setActiveTab, setScannerState, setPaperProgress, setSensorPlatenTripped, setFlattenerEngaged, incrementCompletedScans, reloadHopper, setAutoLoopEnabled, setCycleDelayMs, setExplodedView, setExplodedProgress, setCameraViewPreset, setShowWireframe, setShowSensorBeams, setSelectedCadPart, updateParametricSettings, resetParametricSettings, addApiLog, clearApiLogs, setVirtualAppConnected, setMobileAutoCapture, setLastCaptureThumbnail, setShowReferenceModal, triggerPaperJam, clearPaperJam, } = scannerSlice.actions;
+export const { setShowDimensionsModal, setShowPartLabels, setRemoveExitTray, setUseServoPickup, setPhoneCameraType, setShowTradeoffModal, setTheme, toggleTheme, setActiveTab, setScannerState, setPaperProgress, setSensorPlatenTripped, setFlattenerEngaged, incrementCompletedScans, reloadHopper, setExplodedView, setExplodedProgress, setCameraViewPreset, setShowWireframe, setShowSensorBeams, setSelectedCadPart, updateParametricSettings, resetParametricSettings, addApiLog, clearApiLogs, setVirtualAppConnected, setMobileAutoCapture, setLastCaptureThumbnail, setShowReferenceModal, triggerPaperJam, clearPaperJam, } = scannerSlice.actions;
 export default scannerSlice.reducer;
