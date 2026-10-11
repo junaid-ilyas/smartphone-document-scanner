@@ -38,6 +38,8 @@ export const CadViewer = () => {
         isDragging: false,
         prevX: 0,
         prevY: 0,
+        panX: 0,
+        panY: 0,
         rotX: 0.38,
         rotY: -0.65,
         distance: 58,
@@ -48,6 +50,8 @@ export const CadViewer = () => {
     // Camera preset handler
     const setCameraView = useCallback((preset) => {
         const orbit = orbitRef.current;
+        orbit.panX = 0;
+        orbit.panY = 0;
         switch (preset) {
             case 'top':
                 orbit.rotX = 1.54;
@@ -79,6 +83,7 @@ export const CadViewer = () => {
         const canvas = canvasRef.current;
         if (!container || !canvas)
             return;
+        canvas.style.touchAction = 'none';
         const scene = new THREE.Scene();
         sceneRef.current = scene;
         scene.background = new THREE.Color(isDark ? 0x090e17 : 0xf8fafc);
@@ -136,6 +141,64 @@ export const CadViewer = () => {
         const onMouseUp = () => {
             orbitRef.current.isDragging = false;
         };
+        let lastTouchDistance = 0;
+        let lastTouchCenterX = 0;
+        let lastTouchCenterY = 0;
+        const onTouchStart = (e) => {
+            orbitRef.current.isDragging = true;
+            if (e.touches.length === 1) {
+                orbitRef.current.prevX = e.touches[0].clientX;
+                orbitRef.current.prevY = e.touches[0].clientY;
+                lastTouchDistance = 0;
+            }
+            else if (e.touches.length >= 2) {
+                const first = e.touches[0];
+                const second = e.touches[1];
+                lastTouchDistance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+                lastTouchCenterX = (first.clientX + second.clientX) / 2;
+                lastTouchCenterY = (first.clientY + second.clientY) / 2;
+            }
+        };
+        const onTouchMove = (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const dx = touch.clientX - orbitRef.current.prevX;
+                const dy = touch.clientY - orbitRef.current.prevY;
+                orbitRef.current.prevX = touch.clientX;
+                orbitRef.current.prevY = touch.clientY;
+                orbitRef.current.rotY += dx * 0.008;
+                orbitRef.current.rotX += dy * 0.008;
+                orbitRef.current.rotX = Math.max(-Math.PI / 2 + 0.08, Math.min(Math.PI / 2 - 0.08, orbitRef.current.rotX));
+            }
+            else if (e.touches.length >= 2) {
+                const first = e.touches[0];
+                const second = e.touches[1];
+                const distance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+                const centerX = (first.clientX + second.clientX) / 2;
+                const centerY = (first.clientY + second.clientY) / 2;
+                if (lastTouchDistance > 0) {
+                    orbitRef.current.targetDistance -= (distance - lastTouchDistance) * 0.08;
+                    orbitRef.current.targetDistance = Math.max(16, Math.min(120, orbitRef.current.targetDistance));
+                    orbitRef.current.panX -= (centerX - lastTouchCenterX) * 0.035;
+                    orbitRef.current.panY -= (centerY - lastTouchCenterY) * 0.035;
+                }
+                lastTouchDistance = distance;
+                lastTouchCenterX = centerX;
+                lastTouchCenterY = centerY;
+            }
+        };
+        const onTouchEnd = (e) => {
+            if (e.touches.length === 1) {
+                orbitRef.current.prevX = e.touches[0].clientX;
+                orbitRef.current.prevY = e.touches[0].clientY;
+                lastTouchDistance = 0;
+            }
+            else if (e.touches.length === 0) {
+                orbitRef.current.isDragging = false;
+                lastTouchDistance = 0;
+            }
+        };
         const onWheel = (e) => {
             e.preventDefault();
             orbitRef.current.targetDistance += e.deltaY * 0.045;
@@ -167,6 +230,10 @@ export const CadViewer = () => {
         window.addEventListener('mouseup', onMouseUp);
         dom.addEventListener('wheel', onWheel, { passive: false });
         dom.addEventListener('click', onClick);
+        dom.addEventListener('touchstart', onTouchStart, { passive: true });
+        dom.addEventListener('touchmove', onTouchMove, { passive: false });
+        dom.addEventListener('touchend', onTouchEnd);
+        dom.addEventListener('touchcancel', onTouchEnd);
         const handleResize = () => {
             if (!containerRef.current || !rendererRef.current || !cameraRef.current)
                 return;
@@ -185,10 +252,10 @@ export const CadViewer = () => {
                 orbit.rotY += 0.0035;
             }
             orbit.distance += (orbit.targetDistance - orbit.distance) * 0.1;
-            camera.position.x = orbit.distance * Math.sin(orbit.rotY) * Math.cos(orbit.rotX);
-            camera.position.y = orbit.distance * Math.sin(orbit.rotX);
+            camera.position.x = orbit.panX + orbit.distance * Math.sin(orbit.rotY) * Math.cos(orbit.rotX);
+            camera.position.y = orbit.panY + orbit.distance * Math.sin(orbit.rotX);
             camera.position.z = orbit.distance * Math.cos(orbit.rotY) * Math.cos(orbit.rotX);
-            camera.lookAt(0, 0, 0);
+            camera.lookAt(orbit.panX, orbit.panY, 0);
             renderer.render(scene, camera);
         };
         animate();
@@ -199,6 +266,10 @@ export const CadViewer = () => {
             window.removeEventListener('mouseup', onMouseUp);
             dom.removeEventListener('wheel', onWheel);
             dom.removeEventListener('click', onClick);
+            dom.removeEventListener('touchstart', onTouchStart);
+            dom.removeEventListener('touchmove', onTouchMove);
+            dom.removeEventListener('touchend', onTouchEnd);
+            dom.removeEventListener('touchcancel', onTouchEnd);
             window.removeEventListener('resize', handleResize);
             renderer.dispose();
         };

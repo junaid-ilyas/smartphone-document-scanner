@@ -93,10 +93,10 @@ export const ScannerCanvas3D = () => {
     const orbitRef = useRef({
         rotX: 0.44,
         rotY: -0.68,
-        distance: 54,
+        distance: 90,
         targetRotX: 0.44,
         targetRotY: -0.68,
-        targetDistance: 54,
+        targetDistance: 90,
         panX: -8,
         panY: 7,
         isDragging: false,
@@ -174,7 +174,7 @@ export const ScannerCanvas3D = () => {
             default:
                 orbit.targetRotX = 0.44;
                 orbit.targetRotY = -0.68;
-                orbit.targetDistance = 54;
+                orbit.targetDistance = 90;
                 orbit.panX = -8;
                 orbit.panY = 7;
                 break;
@@ -202,6 +202,7 @@ export const ScannerCanvas3D = () => {
         const canvas = canvasRef.current;
         if (!container || !canvas)
             return;
+        canvas.style.touchAction = 'none';
         // Scene
         const scene = new THREE.Scene();
         sceneRef.current = scene;
@@ -1126,6 +1127,64 @@ export const ScannerCanvas3D = () => {
         const onMouseUp = () => {
             orbitRef.current.isDragging = false;
         };
+        let lastTouchDistance = 0;
+        let lastTouchCenterX = 0;
+        let lastTouchCenterY = 0;
+        const onTouchStart = (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                orbitRef.current.prevX = e.touches[0].clientX;
+                orbitRef.current.prevY = e.touches[0].clientY;
+                lastTouchDistance = 0;
+            }
+            else if (e.touches.length >= 2) {
+                const first = e.touches[0];
+                const second = e.touches[1];
+                lastTouchDistance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+                lastTouchCenterX = (first.clientX + second.clientX) / 2;
+                lastTouchCenterY = (first.clientY + second.clientY) / 2;
+            }
+        };
+        const onTouchMove = (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const dx = touch.clientX - orbitRef.current.prevX;
+                const dy = touch.clientY - orbitRef.current.prevY;
+                orbitRef.current.prevX = touch.clientX;
+                orbitRef.current.prevY = touch.clientY;
+                orbitRef.current.targetRotY += dx * 0.008;
+                orbitRef.current.targetRotX += dy * 0.008;
+                orbitRef.current.targetRotX = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, orbitRef.current.targetRotX));
+            }
+            else if (e.touches.length >= 2) {
+                const first = e.touches[0];
+                const second = e.touches[1];
+                const distance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+                const centerX = (first.clientX + second.clientX) / 2;
+                const centerY = (first.clientY + second.clientY) / 2;
+                if (lastTouchDistance > 0) {
+                    orbitRef.current.targetDistance -= (distance - lastTouchDistance) * 0.08;
+                    orbitRef.current.targetDistance = Math.max(15, Math.min(110, orbitRef.current.targetDistance));
+                    orbitRef.current.panX += (centerX - lastTouchCenterX) * 0.035;
+                    orbitRef.current.panY -= (centerY - lastTouchCenterY) * 0.035;
+                }
+                lastTouchDistance = distance;
+                lastTouchCenterX = centerX;
+                lastTouchCenterY = centerY;
+            }
+        };
+        const onTouchEnd = (e) => {
+            if (e.touches.length === 1) {
+                orbitRef.current.prevX = e.touches[0].clientX;
+                orbitRef.current.prevY = e.touches[0].clientY;
+                lastTouchDistance = 0;
+            }
+            else if (e.touches.length === 0) {
+                orbitRef.current.isDragging = false;
+                lastTouchDistance = 0;
+            }
+        };
         const onWheel = (e) => {
             e.preventDefault();
             orbitRef.current.targetDistance += e.deltaY * 0.04;
@@ -1138,6 +1197,10 @@ export const ScannerCanvas3D = () => {
         window.addEventListener('mouseup', onMouseUp);
         dom.addEventListener('wheel', onWheel, { passive: false });
         dom.addEventListener('contextmenu', onContextMenu);
+        dom.addEventListener('touchstart', onTouchStart, { passive: false });
+        dom.addEventListener('touchmove', onTouchMove, { passive: false });
+        dom.addEventListener('touchend', onTouchEnd);
+        dom.addEventListener('touchcancel', onTouchEnd);
         const handleResize = () => {
             if (!containerRef.current || !rendererRef.current || !cameraRef.current)
                 return;
@@ -1218,6 +1281,10 @@ export const ScannerCanvas3D = () => {
             window.removeEventListener('mouseup', onMouseUp);
             dom.removeEventListener('wheel', onWheel);
             dom.removeEventListener('contextmenu', onContextMenu);
+            dom.removeEventListener('touchstart', onTouchStart);
+            dom.removeEventListener('touchmove', onTouchMove);
+            dom.removeEventListener('touchend', onTouchEnd);
+            dom.removeEventListener('touchcancel', onTouchEnd);
             window.removeEventListener('resize', handleResize);
             renderer.dispose();
         };
